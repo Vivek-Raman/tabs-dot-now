@@ -18,14 +18,14 @@ rm -f "$archive"
 cd "$project_dir"
 zip -q "$archive" \
   manifest.json \
-  popup.html \
-  styles.css \
-  popup.js \
-  options.html \
-  options.css \
-  options.js \
+  src/popup/popup.html \
+  src/popup/styles.css \
+  src/popup/popup.js \
+  src/options/options.html \
+  src/options/options.css \
+  src/options/options.js \
   spotify-config.js \
-  spotify.js \
-  background.js
+  src/background/spotify.js \
+  src/background/background.js
 
 echo "Created $archive"

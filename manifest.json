@@ -14,14 +14,18 @@
     "https://api.spotify.com/*"
   ],
   "background": {
-    "scripts": ["spotify-config.js", "spotify.js", "background.js"]
+    "scripts": [
+      "spotify-config.js",
+      "src/background/spotify.js",
+      "src/background/background.js"
+    ]
   },
   "action": {
     "default_title": "Tabs Now",
-    "default_popup": "popup.html"
+    "default_popup": "src/popup/popup.html"
   },
   "options_ui": {
-    "page": "options.html",
+    "page": "src/options/options.html",
     "open_in_tab": true
   },
   "browser_specific_settings": {
