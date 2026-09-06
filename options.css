@@ -1,0 +1,52 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #18181b;
+  background: #ffffff;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 640px;
+  padding: 32px;
+}
+
+h1 {
+  margin: 0 0 24px;
+  font-size: 1.5rem;
+}
+
+.setting {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.setting input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+}
+
+.setting strong,
+.setting small {
+  display: block;
+}
+
+.setting small {
+  margin-top: 4px;
+  color: #52525b;
+}
+
+#status {
+  min-height: 1.25rem;
+  margin: 12px 0 0;
+  color: #166534;
+  font-size: 0.875rem;
+}

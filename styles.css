@@ -1,0 +1,154 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #18181b;
+  background: #ffffff;
+}
+
+body {
+  min-width: 360px;
+  margin: 0;
+}
+
+main {
+  padding: 16px;
+}
+
+.spotify-panel {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e4e4e7;
+  margin-bottom: 16px;
+}
+
+.spotify-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.now-playing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.now-playing[hidden] {
+  display: none;
+}
+
+#album-art {
+  width: 64px;
+  height: 64px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.track-details {
+  min-width: 0;
+}
+
+.track-details p {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#playback-label,
+#track-creators,
+#spotify-status {
+  color: #52525b;
+  font-size: 0.8125rem;
+}
+
+#track-name {
+  font-weight: 650;
+}
+
+#spotify-status {
+  min-height: 1.25rem;
+  margin: 0;
+}
+
+form {
+  display: grid;
+  gap: 8px;
+}
+
+label {
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+input,
+button {
+  min-height: 40px;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  font: inherit;
+}
+
+input {
+  min-width: 0;
+  flex: 1;
+  padding: 0 10px;
+}
+
+input:focus {
+  border-color: #2563eb;
+  outline: 2px solid #bfdbfe;
+}
+
+button {
+  padding: 0 14px;
+  color: #ffffff;
+  background: #18181b;
+  border-color: #18181b;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+#spotify-action {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+}
+
+#status {
+  min-height: 1.25rem;
+  margin: 0;
+  color: #52525b;
+  font-size: 0.8125rem;
+}
+
+#status[data-state="error"] {
+  color: #b91c1c;
+}
+
+#status[data-state="success"] {
+  color: #166534;
+}
+
+.settings-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: #2563eb;
+  font-size: 0.8125rem;
+}

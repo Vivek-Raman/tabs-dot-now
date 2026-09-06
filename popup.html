@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tabs Now</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <section class="spotify-panel" aria-labelledby="spotify-heading">
+        <div class="spotify-header">
+          <h1 id="spotify-heading">Spotify</h1>
+          <button id="spotify-action" type="button">Connect Spotify</button>
+        </div>
+        <div id="now-playing" class="now-playing" hidden>
+          <img id="album-art" alt="" hidden />
+          <div class="track-details">
+            <p id="playback-label">Now playing</p>
+            <p id="track-name"></p>
+            <p id="track-creators"></p>
+          </div>
+        </div>
+        <p id="spotify-status" role="status" aria-live="polite">
+          Connect Spotify to see what is playing.
+        </p>
+      </section>
+
+      <form id="search-form">
+        <label for="search-query">Find a song or artist</label>
+        <div class="controls">
+          <input
+            id="search-query"
+            name="query"
+            type="search"
+            placeholder="e.g. Blackbird"
+            autocomplete="off"
+            required
+          />
+          <button type="submit">Load tab</button>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </form>
+      <a class="settings-link" href="options.html" target="_blank">Settings</a>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

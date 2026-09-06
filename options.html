@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tabs Now settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Tabs Now settings</h1>
+      <form id="settings-form">
+        <label class="setting" for="reuse-open-tab">
+          <input id="reuse-open-tab" name="reuseOpenTab" type="checkbox" />
+          <span>
+            <strong>Reuse an open Ultimate Guitar tab</strong>
+            <small>When disabled, each search opens a new tab.</small>
+          </span>
+        </label>
+      </form>
+      <p id="status" role="status" aria-live="polite"></p>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

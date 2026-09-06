@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Tabs Now",
+  "version": "1.0.0",
+  "description": "Search Ultimate Guitar from a Firefox toolbar popup.",
+  "developer": {
+    "name": "Vivek Raman",
+    "url": "https://vivekraman.dev"
+  },
+  "homepage_url": "https://vivekraman.dev",
+  "permissions": ["tabs", "identity", "storage"],
+  "host_permissions": [
+    "https://accounts.spotify.com/*",
+    "https://api.spotify.com/*"
+  ],
+  "background": {
+    "scripts": ["spotify-config.js", "spotify.js", "background.js"]
+  },
+  "action": {
+    "default_title": "Tabs Now",
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tabs-now@vivekraman.dev",
+      "strict_min_version": "109.0"
+    }
+  }
+}
