@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tabs Now",
   "version": "1.0.0",
-  "description": "Search Ultimate Guitar from a Firefox toolbar popup.",
+  "description": "Search Ultimate Guitar from a Firefox sidebar.",
   "developer": {
     "name": "Vivek Raman",
     "url": "https://vivekraman.dev"
@@ -21,8 +21,12 @@
     ]
   },
   "action": {
+    "default_title": "Toggle Tabs Now sidebar"
+  },
+  "sidebar_action": {
     "default_title": "Tabs Now",
-    "default_popup": "src/popup/popup.html"
+    "default_panel": "src/popup/popup.html",
+    "open_at_install": false
   },
   "options_ui": {
     "page": "src/options/options.html",

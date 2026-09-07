@@ -1,10 +1,10 @@
 # Tabs Now
 
-A plain HTML, CSS, and JavaScript Firefox extension that sends a song or artist search to Ultimate Guitar. It reuses an open Ultimate Guitar tab when possible and opens a new one otherwise.
+A plain HTML, CSS, and JavaScript Firefox extension that follows the current Spotify song on Ultimate Guitar. Start jamming to open a search for the current song, then it updates the search when the song changes. Stop jamming to pause that behavior. It reuses an open Ultimate Guitar tab when possible and opens a new one otherwise.
 
-The extension code lives in `src/`, grouped by surface: `popup`, `options`, and `background`. `spotify-config.js` stays at the root so it is easy to update locally and is loaded before the background scripts.
+The extension code lives in `src/`, grouped by surface: `popup`, `options`, and `background`. The UI file in `popup` is loaded as Firefox's sidebar panel. `spotify-config.js` stays at the root so it is easy to update locally and is loaded before the background scripts.
 
-The popup can also connect directly to Spotify and display the current user's playing track or episode. Spotify authorization uses Firefox's identity API and PKCE. It does not require a server, website, or Spotify Client Secret.
+The sidebar can also connect directly to Spotify and display the current user's playing track or episode. Spotify authorization uses Firefox's identity API and PKCE. It does not require a server, website, or Spotify Client Secret.
 
 ## Connect Spotify
 
@@ -33,6 +33,8 @@ Spotify development-mode apps support up to five allowlisted users. Add each tes
 After editing a file, click **Reload** for the extension in `about:debugging`.
 
 Temporary extensions disappear when Firefox restarts.
+
+Click the Tabs Now toolbar icon to open or close the sidebar. You can also select it from Firefox's sidebar menu.
 
 ## Package
 

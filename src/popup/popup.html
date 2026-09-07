@@ -26,21 +26,37 @@
         </p>
       </section>
 
-      <form id="search-form">
-        <label for="search-query">Find a song or artist</label>
-        <div class="controls">
-          <input
-            id="search-query"
-            name="query"
-            type="search"
-            placeholder="e.g. Blackbird"
-            autocomplete="off"
-            required
-          />
-          <button type="submit">Load tab</button>
+      <section class="jamming-panel" aria-labelledby="jamming-heading">
+        <div class="jamming-header">
+          <h2 id="jamming-heading">Jam with Ultimate Guitar</h2>
+          <p>Follow each song playing on Spotify.</p>
         </div>
-        <p id="status" role="status" aria-live="polite"></p>
-      </form>
+        <div class="jamming-controls">
+          <fieldset class="jam-mode" aria-describedby="jam-mode-help">
+            <legend>Jam mode</legend>
+            <div class="jam-mode-options">
+              <label>
+                <input type="radio" name="jam-mode" value="tabs" />
+                Tabs
+              </label>
+              <label>
+                <input type="radio" name="jam-mode" value="chords" checked />
+                Chords
+              </label>
+            </div>
+            <span id="jam-mode-help" class="visually-hidden">
+              Choose the type of Ultimate Guitar results to open while jamming.
+            </span>
+          </fieldset>
+          <button id="jamming-action" type="button">Start jamming</button>
+        </div>
+        <p id="jamming-status" role="status" aria-live="polite"></p>
+      </section>
+      <section id="queue-panel" class="queue-panel" aria-labelledby="queue-heading" hidden>
+        <h2 id="queue-heading">Up next</h2>
+        <ol id="queue-list" class="queue-list"></ol>
+        <p id="queue-status" role="status" aria-live="polite"></p>
+      </section>
       <a class="settings-link" href="../options/options.html" target="_blank">Settings</a>
     </main>
     <script src="popup.js"></script>

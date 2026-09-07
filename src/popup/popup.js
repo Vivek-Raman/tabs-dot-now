@@ -1,7 +1,3 @@
-const form = document.querySelector("#search-form")
-const input = document.querySelector("#search-query")
-const status = document.querySelector("#status")
-const button = form.querySelector("button")
 const spotifyAction = document.querySelector("#spotify-action")
 const spotifyStatus = document.querySelector("#spotify-status")
 const nowPlaying = document.querySelector("#now-playing")
@@ -9,18 +5,85 @@ const albumArt = document.querySelector("#album-art")
 const playbackLabel = document.querySelector("#playback-label")
 const trackName = document.querySelector("#track-name")
 const trackCreators = document.querySelector("#track-creators")
+const queuePanel = document.querySelector("#queue-panel")
+const queueList = document.querySelector("#queue-list")
+const queueStatus = document.querySelector("#queue-status")
+const jammingAction = document.querySelector("#jamming-action")
+const jammingStatus = document.querySelector("#jamming-status")
+const jamModeInputs = document.querySelectorAll('input[name="jam-mode"]')
 
 let spotifyConnected = false
+let jamming = false
+let jamMode = "chords"
 let spotifyPoll
+let rapidPollingUntil = 0
+let lastQueueTrackUri
+let lastQueueRefreshAt = 0
+const NORMAL_POLL_MS = 5_000
+const FINAL_SECONDS_WINDOW_MS = 5_000
+const FINAL_SECONDS_POLL_MS = 1_000
+const POST_ROLLOVER_POLL_MS = 5_000
+const QUEUE_REFRESH_MS = 60_000
 
-input.focus()
+function getSpotifyPollDelay(playback) {
+  if (!playback.isPlaying) {
+    if (!playback.current && Date.now() < rapidPollingUntil) {
+      return FINAL_SECONDS_POLL_MS
+    }
 
-function setSpotifyPolling(enabled) {
-  clearInterval(spotifyPoll)
-
-  if (enabled) {
-    spotifyPoll = setInterval(loadCurrentlyPlaying, 5_000)
+    rapidPollingUntil = 0
+    return NORMAL_POLL_MS
   }
+
+  if (
+    !Number.isFinite(playback.progressMs) ||
+    !Number.isFinite(playback.current?.durationMs)
+  ) {
+    if (Date.now() < rapidPollingUntil) return FINAL_SECONDS_POLL_MS
+
+    rapidPollingUntil = 0
+    return NORMAL_POLL_MS
+  }
+
+  const remainingMs = playback.current.durationMs - playback.progressMs
+
+  if (remainingMs <= FINAL_SECONDS_WINDOW_MS) {
+    rapidPollingUntil = Math.max(
+      rapidPollingUntil,
+      Date.now() + Math.max(remainingMs, 0) + POST_ROLLOVER_POLL_MS,
+    )
+    return FINAL_SECONDS_POLL_MS
+  }
+
+  if (Date.now() < rapidPollingUntil) return FINAL_SECONDS_POLL_MS
+
+  // Enter the one-second cadence when the track has five seconds remaining,
+  // rather than waiting for the next regular five-second check.
+  if (remainingMs < NORMAL_POLL_MS + FINAL_SECONDS_WINDOW_MS) {
+    return Math.max(FINAL_SECONDS_POLL_MS, remainingMs - FINAL_SECONDS_WINDOW_MS)
+  }
+
+  return NORMAL_POLL_MS
+}
+
+function setSpotifyPolling(playback) {
+  clearTimeout(spotifyPoll)
+
+  if (!playback.connected) {
+    rapidPollingUntil = 0
+    return
+  }
+
+  const delay = getSpotifyPollDelay(playback)
+  const poll = delay === NORMAL_POLL_MS ? loadSpotifyData : loadCurrentlyPlaying
+  spotifyPoll = setTimeout(poll, delay)
+}
+
+function scheduleSpotifyRetry() {
+  if (!spotifyConnected) return
+
+  clearTimeout(spotifyPoll)
+  spotifyPoll = setTimeout(loadSpotifyData, NORMAL_POLL_MS)
 }
 
 function renderSpotify(playback) {
@@ -29,10 +92,14 @@ function renderSpotify(playback) {
     ? "Disconnect"
     : "Connect Spotify"
   spotifyAction.disabled = false
-  setSpotifyPolling(playback.connected)
+  setSpotifyPolling(playback)
+  renderJamming(playback)
 
   if (!playback.connected) {
+    lastQueueTrackUri = undefined
+    lastQueueRefreshAt = 0
     nowPlaying.hidden = true
+    queuePanel.hidden = true
     spotifyStatus.textContent = "Connect Spotify to see what is playing."
     return
   }
@@ -60,16 +127,107 @@ function renderSpotify(playback) {
   }
 }
 
+function renderJamming(playback) {
+  jammingAction.textContent = jamming ? "Stop jamming" : "Start jamming"
+  jammingAction.disabled = !jamming && !playback.connected
+
+  if (jamming) {
+    jammingStatus.textContent = playback.current
+      ? "Ultimate Guitar will open results for each new song."
+      : "Waiting for a song to play."
+  } else if (!playback.connected) {
+    jammingStatus.textContent = "Connect Spotify to start jamming."
+  } else if (!playback.current) {
+    jammingStatus.textContent = "Start jamming to follow the next song."
+  } else {
+    jammingStatus.textContent = ""
+  }
+}
+
+function shouldRefreshQueue(playback, force = false) {
+  if (force) return true
+
+  if (!playback.current) {
+    return Date.now() - lastQueueRefreshAt >= QUEUE_REFRESH_MS
+  }
+
+  return (
+    playback.current.uri !== lastQueueTrackUri ||
+    Date.now() - lastQueueRefreshAt >= QUEUE_REFRESH_MS
+  )
+}
+
+function renderQueue(playback) {
+  if (!playback.connected) {
+    queuePanel.hidden = true
+    queueList.replaceChildren()
+    return
+  }
+
+  queuePanel.hidden = false
+  queueList.replaceChildren(
+    ...playback.queue.map((item) => {
+      const entry = document.createElement("li")
+      const name = document.createElement("span")
+      const creators = document.createElement("span")
+
+      name.className = "queue-track-name"
+      name.textContent = item.name
+      creators.className = "queue-track-creators"
+      creators.textContent = item.creators.join(", ")
+      entry.append(name, creators)
+      return entry
+    }),
+  )
+  queueStatus.textContent = playback.queue.length ? "" : "Nothing else is queued."
+}
+
+async function refreshQueue(playback) {
+  const currentTrackUri = playback.current?.uri ?? null
+
+  try {
+    const queue = await browser.runtime.sendMessage({ type: "spotify-queue" })
+    renderQueue(queue)
+  } catch (error) {
+    console.error(error)
+    queueStatus.textContent = error.message || "Could not load the queue."
+  } finally {
+    lastQueueTrackUri = currentTrackUri
+    lastQueueRefreshAt = Date.now()
+  }
+}
+
+async function updateSpotify(playback, forceQueue = false) {
+  renderSpotify(playback)
+
+  if (shouldRefreshQueue(playback, forceQueue)) {
+    await refreshQueue(playback)
+  }
+}
+
+async function loadSpotifyData(forceQueue = false) {
+  try {
+    const playback = await browser.runtime.sendMessage({
+      type: "spotify-currently-playing",
+    })
+    await updateSpotify(playback, forceQueue)
+  } catch (error) {
+    console.error(error)
+    spotifyStatus.textContent = error.message || "Could not load Spotify."
+    scheduleSpotifyRetry()
+  }
+}
+
 async function loadCurrentlyPlaying() {
   try {
     const playback = await browser.runtime.sendMessage({
       type: "spotify-currently-playing",
     })
-    renderSpotify(playback)
+    await updateSpotify(playback)
   } catch (error) {
     console.error(error)
-    setSpotifyPolling(false)
-    spotifyStatus.textContent = error.message
+    spotifyStatus.textContent = error.message || "Could not load Spotify."
+    scheduleSpotifyRetry()
   }
 }
 
@@ -79,11 +237,38 @@ async function initializeSpotify() {
   })
 
   if (connection.connected) {
-    await loadCurrentlyPlaying()
+    await loadSpotifyData(true)
   } else {
     renderSpotify(connection)
   }
 }
+
+async function initializeJamming() {
+  const state = await browser.runtime.sendMessage({ type: "jamming-status" })
+  jamming = state.active
+  jamMode = state.mode
+  document.querySelector(`input[name="jam-mode"][value="${jamMode}"]`).checked = true
+}
+
+jamModeInputs.forEach((input) => {
+  input.addEventListener("change", async () => {
+    if (!input.checked || input.value === jamMode) return
+
+    try {
+      const result = await browser.runtime.sendMessage({
+        type: "jamming-set-mode",
+        mode: input.value,
+      })
+      jamMode = result.mode
+
+      if (result.message) jammingStatus.textContent = result.message
+    } catch (error) {
+      console.error(error)
+      document.querySelector(`input[name="jam-mode"][value="${jamMode}"]`).checked = true
+      jammingStatus.textContent = error.message || "Could not change jam mode."
+    }
+  })
+})
 
 spotifyAction.addEventListener("click", async () => {
   spotifyAction.disabled = true
@@ -96,6 +281,7 @@ spotifyAction.addEventListener("click", async () => {
       type: spotifyConnected ? "spotify-disconnect" : "spotify-connect",
     })
     renderSpotify(result)
+    if (result.connected) await loadSpotifyData(true)
   } catch (error) {
     console.error(error)
     spotifyAction.disabled = false
@@ -103,34 +289,26 @@ spotifyAction.addEventListener("click", async () => {
   }
 })
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault()
-
-  const query = input.value.trim()
-  if (!query) return
-
-  button.disabled = true
-  status.dataset.state = "loading"
-  status.textContent = "Loading..."
+jammingAction.addEventListener("click", async () => {
+  jammingAction.disabled = true
+  jammingStatus.textContent = jamming ? "Stopping..." : "Starting..."
 
   try {
-    const message = await browser.runtime.sendMessage({
-      type: "load-tab",
-      query,
+    const result = await browser.runtime.sendMessage({
+      type: jamming ? "jamming-stop" : "jamming-start",
     })
-
-    status.dataset.state = "success"
-    status.textContent = message
+    jamming = result.active
+    jammingStatus.textContent = result.message
   } catch (error) {
     console.error(error)
-    status.dataset.state = "error"
-    status.textContent = "Firefox could not open the tab."
+    jammingStatus.textContent = error.message || "Firefox could not update jamming."
   } finally {
-    button.disabled = false
+    jammingAction.disabled = false
+    jammingAction.textContent = jamming ? "Stop jamming" : "Start jamming"
   }
 })
 
-initializeSpotify().catch((error) => {
+initializeJamming().then(initializeSpotify).catch((error) => {
   console.error(error)
   spotifyStatus.textContent = error.message
 })

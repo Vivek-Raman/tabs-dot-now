@@ -239,7 +239,7 @@ async function getQueue() {
   return {
     connected: true,
     current: normalizeItem(queue?.currently_playing),
-    queue: queue?.queue?.map(normalizeItem) ?? [],
+    queue: queue?.queue?.slice(0, 10).map(normalizeItem) ?? [],
   }
 }
 

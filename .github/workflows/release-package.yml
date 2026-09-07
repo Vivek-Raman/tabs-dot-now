@@ -1,0 +1,27 @@
+name: Package release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package and upload extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Package extension
+        run: ./package.sh
+
+      - name: Upload extension package
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
