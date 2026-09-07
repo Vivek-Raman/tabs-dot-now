@@ -11,10 +11,13 @@ const queueStatus = document.querySelector("#queue-status")
 const jammingAction = document.querySelector("#jamming-action")
 const jammingStatus = document.querySelector("#jamming-status")
 const jamModeInputs = document.querySelectorAll('input[name="jam-mode"]')
+const jamResultInputs = document.querySelectorAll('input[name="jam-result"]')
+const manualOpenButtons = document.querySelectorAll("[data-jam-result]")
 
 let spotifyConnected = false
 let jamming = false
 let jamMode = "chords"
+let jamResult = "most-rated"
 let spotifyPoll
 let rapidPollingUntil = 0
 let lastQueueTrackUri
@@ -24,6 +27,15 @@ const FINAL_SECONDS_WINDOW_MS = 5_000
 const FINAL_SECONDS_POLL_MS = 1_000
 const POST_ROLLOVER_POLL_MS = 5_000
 const QUEUE_REFRESH_MS = 60_000
+const ULTIMATE_GUITAR_ORIGINS = ["https://www.ultimate-guitar.com/*"]
+
+browser.runtime.onMessage.addListener((message) => {
+  if (message?.type !== "jamming-debug") return undefined
+
+  console.info("[Tabs Now]", message.detail)
+  jammingStatus.textContent = message.detail
+  return undefined
+})
 
 function getSpotifyPollDelay(playback) {
   if (!playback.isPlaying) {
@@ -86,6 +98,16 @@ function scheduleSpotifyRetry() {
   spotifyPoll = setTimeout(loadSpotifyData, NORMAL_POLL_MS)
 }
 
+async function requestUltimateGuitarPermission() {
+  const granted = await browser.permissions.request({
+    origins: ULTIMATE_GUITAR_ORIGINS,
+  })
+
+  if (!granted) {
+    throw new Error("Allow Ultimate Guitar access to open tabs automatically.")
+  }
+}
+
 function renderSpotify(playback) {
   spotifyConnected = playback.connected
   spotifyAction.textContent = playback.connected
@@ -130,6 +152,9 @@ function renderSpotify(playback) {
 function renderJamming(playback) {
   jammingAction.textContent = jamming ? "Stop jamming" : "Start jamming"
   jammingAction.disabled = !jamming && !playback.connected
+  manualOpenButtons.forEach((button) => {
+    button.disabled = !playback.current
+  })
 
   if (jamming) {
     jammingStatus.textContent = playback.current
@@ -247,7 +272,9 @@ async function initializeJamming() {
   const state = await browser.runtime.sendMessage({ type: "jamming-status" })
   jamming = state.active
   jamMode = state.mode
+  jamResult = state.result
   document.querySelector(`input[name="jam-mode"][value="${jamMode}"]`).checked = true
+  document.querySelector(`input[name="jam-result"][value="${jamResult}"]`).checked = true
 }
 
 jamModeInputs.forEach((input) => {
@@ -266,6 +293,49 @@ jamModeInputs.forEach((input) => {
       console.error(error)
       document.querySelector(`input[name="jam-mode"][value="${jamMode}"]`).checked = true
       jammingStatus.textContent = error.message || "Could not change jam mode."
+    }
+  })
+})
+
+jamResultInputs.forEach((input) => {
+  input.addEventListener("change", async () => {
+    if (!input.checked || input.value === jamResult) return
+
+    try {
+      if (input.value === "most-rated") await requestUltimateGuitarPermission()
+      const result = await browser.runtime.sendMessage({
+        type: "jamming-set-result",
+        result: input.value,
+      })
+      jamResult = result.result
+      jammingStatus.textContent = "This auto-open behavior will apply to the next song."
+    } catch (error) {
+      console.error(error)
+      document.querySelector(`input[name="jam-result"][value="${jamResult}"]`).checked = true
+      jammingStatus.textContent = error.message || "Could not change auto-open behavior."
+    }
+  })
+})
+
+manualOpenButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    button.disabled = true
+    jammingStatus.textContent = "Opening..."
+
+    try {
+      if (button.dataset.jamResult === "most-rated") {
+        await requestUltimateGuitarPermission()
+      }
+      const result = await browser.runtime.sendMessage({
+        type: "jamming-open-current",
+        result: button.dataset.jamResult,
+      })
+      jammingStatus.textContent = result.message
+    } catch (error) {
+      console.error(error)
+      jammingStatus.textContent = error.message || "Could not open the current track."
+    } finally {
+      button.disabled = false
     }
   })
 })
@@ -294,6 +364,9 @@ jammingAction.addEventListener("click", async () => {
   jammingStatus.textContent = jamming ? "Stopping..." : "Starting..."
 
   try {
+    if (!jamming && jamResult === "most-rated") {
+      await requestUltimateGuitarPermission()
+    }
     const result = await browser.runtime.sendMessage({
       type: jamming ? "jamming-stop" : "jamming-start",
     })

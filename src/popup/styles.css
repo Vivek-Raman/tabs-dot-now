@@ -1,7 +1,7 @@
 :root {
   font-family: system-ui, sans-serif;
   color: #18181b;
-  background: #ffffff;
+  background: #f4f4f5;
 }
 
 *,
@@ -19,18 +19,43 @@ body {
 body {
   min-width: 0;
   margin: 0;
+  min-height: 100vh;
+  background: transparent;
+  isolation: isolate;
+}
+
+body::before {
+  position: fixed;
+  z-index: -1;
+  inset: -40px;
+  content: "";
+  background:
+    radial-gradient(circle at 20% 20%, #d4d4d8, transparent 45%),
+    radial-gradient(circle at 80% 80%, #e4e4e7, transparent 50%),
+    #f4f4f5;
+  background-image: -moz-element(#album-art);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(28px) saturate(1.2) brightness(0.84);
+  opacity: 0.8;
+  pointer-events: none;
+  transform: scale(1.08);
 }
 
 main {
   min-width: 0;
+  min-height: 100vh;
   padding: clamp(8px, 5vw, 16px);
+  background: linear-gradient(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.84));
+  backdrop-filter: blur(16px);
 }
 
 .spotify-panel {
   display: grid;
   gap: 12px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid rgb(228 228 231 / 0.72);
   margin-bottom: 16px;
 }
 
@@ -166,15 +191,30 @@ h1 {
 }
 
 .jamming-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: space-between;
+  display: grid;
   gap: 12px;
 }
 
-.jamming-controls button {
-  flex: 1 0 auto;
+.jam-preferences,
+.jam-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.manual-open-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.manual-open-actions button {
+  flex: 1 1 9rem;
+  min-height: 32px;
+  padding: 0 10px;
+  color: #18181b;
+  background: #ffffff;
+  border-color: #d4d4d8;
+  font-size: 0.8125rem;
 }
 
 button {

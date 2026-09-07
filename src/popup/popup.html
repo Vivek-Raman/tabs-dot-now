@@ -32,23 +32,51 @@
           <p>Follow each song playing on Spotify.</p>
         </div>
         <div class="jamming-controls">
-          <fieldset class="jam-mode" aria-describedby="jam-mode-help">
-            <legend>Jam mode</legend>
-            <div class="jam-mode-options">
-              <label>
-                <input type="radio" name="jam-mode" value="tabs" />
-                Tabs
-              </label>
-              <label>
-                <input type="radio" name="jam-mode" value="chords" checked />
-                Chords
-              </label>
+          <div class="jam-preferences">
+            <fieldset class="jam-mode" aria-describedby="jam-mode-help">
+              <legend>Jam mode</legend>
+              <div class="jam-mode-options">
+                <label>
+                  <input type="radio" name="jam-mode" value="tabs" />
+                  Tabs
+                </label>
+                <label>
+                  <input type="radio" name="jam-mode" value="chords" checked />
+                  Chords
+                </label>
+              </div>
+              <span id="jam-mode-help" class="visually-hidden">
+                Choose the type of Ultimate Guitar results to open while jamming.
+              </span>
+            </fieldset>
+            <fieldset class="jam-mode" aria-describedby="jam-result-help">
+              <legend>Auto-open behavior</legend>
+              <div class="jam-mode-options">
+                <label>
+                  <input type="radio" name="jam-result" value="search" />
+                  Search results
+                </label>
+                <label>
+                  <input type="radio" name="jam-result" value="most-rated" checked />
+                  Most rated
+                </label>
+              </div>
+              <span id="jam-result-help" class="visually-hidden">
+                Choose what opens automatically for each new song.
+              </span>
+            </fieldset>
+          </div>
+          <div class="jam-actions">
+            <div class="manual-open-actions" aria-label="Open the current track">
+              <button id="open-search-results" type="button" data-jam-result="search">
+                Open search results
+              </button>
+              <button id="open-most-rated" type="button" data-jam-result="most-rated">
+                Open most rated
+              </button>
             </div>
-            <span id="jam-mode-help" class="visually-hidden">
-              Choose the type of Ultimate Guitar results to open while jamming.
-            </span>
-          </fieldset>
-          <button id="jamming-action" type="button">Start jamming</button>
+            <button id="jamming-action" type="button">Start jamming</button>
+          </div>
         </div>
         <p id="jamming-status" role="status" aria-live="polite"></p>
       </section>

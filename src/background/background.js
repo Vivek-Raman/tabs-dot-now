@@ -4,19 +4,33 @@ const ultimateGuitarPatterns = [
 ]
 const JAMMING_STORAGE_KEY = "jamming"
 const JAM_MODE_STORAGE_KEY = "jamMode"
+const JAM_RESULT_STORAGE_KEY = "jamResult"
 const JAMMING_POLL_MS = 5_000
 
 let jamming = false
 let jamMode = "chords"
+let jamResult = "most-rated"
+let lastJamDebug = ""
 let jammingPoll
 let lastJammedTrackUri
 
-function getSearchUrl(query, mode = jamMode) {
+function getSearchUrl(query, mode = jamMode, mostRatedTrack = null) {
   const url = new URL("https://www.ultimate-guitar.com/search.php")
   url.searchParams.set("search_type", "title")
   url.searchParams.set("value", query)
   url.searchParams.append("type[]", mode === "chords" ? "300" : "200")
+
+  if (mostRatedTrack) {
+    url.searchParams.set("tabs-now-open", "most-rated")
+    url.searchParams.set("tabs-now-title", mostRatedTrack.name)
+    url.searchParams.set("tabs-now-creators", mostRatedTrack.creators.join("\u001f"))
+  }
+
   return url.toString()
+}
+
+function getTrackQuery(track) {
+  return [track.name, ...track.creators].filter(Boolean).join(" ")
 }
 
 async function findUltimateGuitarTab() {
@@ -31,15 +45,18 @@ async function findUltimateGuitarTab() {
   return allTabs[0]
 }
 
-async function loadTab(query, mode = jamMode) {
-  const url = getSearchUrl(query, mode)
+async function loadTab(query, mode = jamMode, mostRatedTrack = null) {
+  const url = getSearchUrl(query, mode, mostRatedTrack)
+  const destination = mostRatedTrack
+    ? `most rated ${mode} result`
+    : `${mode} search`
   const { reuseOpenTab = true } = await browser.storage.local.get({
     reuseOpenTab: true,
   })
 
   if (!reuseOpenTab) {
     await browser.tabs.create({ active: true, url })
-    return `Opened a new Ultimate Guitar ${mode} search.`
+    return `Opened a new Ultimate Guitar ${destination}.`
   }
 
   const existingTab = await findUltimateGuitarTab()
@@ -47,11 +64,25 @@ async function loadTab(query, mode = jamMode) {
   if (existingTab?.id !== undefined) {
     await browser.tabs.update(existingTab.id, { active: true, url })
     await browser.windows.update(existingTab.windowId, { focused: true })
-    return `Loaded ${mode} in your open Ultimate Guitar tab.`
+    return `Loading the ${destination} in your Ultimate Guitar tab.`
   }
 
   await browser.tabs.create({ active: true, url })
-  return `Opened a new Ultimate Guitar ${mode} search.`
+  return `Opened a new Ultimate Guitar ${destination}.`
+}
+
+async function loadMostRatedTab(track, mode = jamMode) {
+  console.info("[Tabs Now] Loading most-rated search", {
+    track: track.name,
+    creators: track.creators,
+    mode,
+  })
+  return loadTab(getTrackQuery(track), mode, track)
+}
+
+function loadTrack(track, result = jamResult) {
+  if (result === "search") return loadTab(getTrackQuery(track))
+  return loadMostRatedTab(track)
 }
 
 function scheduleJammingCheck() {
@@ -80,7 +111,7 @@ async function checkForJammingTrack() {
       return "Waiting for the next song."
     }
 
-    const message = await loadTab(playback.current.name)
+    const message = await loadTrack(playback.current)
     lastJammedTrackUri = playback.current.uri
     return message
   } finally {
@@ -115,11 +146,38 @@ async function setJamMode(mode) {
   return checkForJammingTrack()
 }
 
+async function setJamResult(result) {
+  if (result !== "search" && result !== "most-rated") {
+    throw new Error("Choose search results or most rated.")
+  }
+
+  jamResult = result
+  await browser.storage.local.set({ [JAM_RESULT_STORAGE_KEY]: result })
+}
+
+async function openCurrentTrack(result) {
+  if (result !== "search" && result !== "most-rated") {
+    throw new Error("Choose search results or most rated.")
+  }
+
+  const playback = await Spotify.getCurrentlyPlaying()
+  if (!playback.current) throw new Error("Play a song to open a tab.")
+
+  const message = await loadTrack(playback.current, result)
+  if (jamming) lastJammedTrackUri = playback.current.uri
+  return message
+}
+
 const restoreJamming = browser.storage.local
-  .get({ [JAMMING_STORAGE_KEY]: false, [JAM_MODE_STORAGE_KEY]: "chords" })
+  .get({
+    [JAMMING_STORAGE_KEY]: false,
+    [JAM_MODE_STORAGE_KEY]: "chords",
+    [JAM_RESULT_STORAGE_KEY]: "most-rated",
+  })
   .then(async (stored) => {
     jamming = stored[JAMMING_STORAGE_KEY]
     jamMode = stored[JAM_MODE_STORAGE_KEY]
+    jamResult = stored[JAM_RESULT_STORAGE_KEY]
     if (jamming) await checkForJammingTrack()
   })
   .catch((error) => {
@@ -139,11 +197,20 @@ browser.runtime.onMessage.addListener(async (message) => {
       return loadTab(query)
     }
     case "jamming-status":
-      return { active: jamming, mode: jamMode }
+      return { active: jamming, mode: jamMode, result: jamResult, debug: lastJamDebug }
     case "jamming-set-mode": {
       const message = await setJamMode(message.mode)
       return { mode: jamMode, message }
     }
+    case "jamming-set-result":
+      await setJamResult(message.result)
+      return { result: jamResult }
+    case "jamming-open-current":
+      return { message: await openCurrentTrack(message.result) }
+    case "jamming-debug":
+      lastJamDebug = message.detail || ""
+      console.info("[Tabs Now] Most-rated debug:", lastJamDebug)
+      return undefined
     case "jamming-start":
       return { active: true, message: await setJamming(true) }
     case "jamming-stop":

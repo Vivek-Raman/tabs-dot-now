@@ -12,8 +12,8 @@ fi
 
 archive="$project_dir/dist/tabs-now-$version.zip"
 
+rm -rf "$project_dir/dist"
 mkdir -p "$project_dir/dist"
-rm -f "$archive"
 
 cd "$project_dir"
 zip -q "$archive" \
@@ -24,6 +24,7 @@ zip -q "$archive" \
   src/options/options.html \
   src/options/options.css \
   src/options/options.js \
+  src/content/open-most-rated.js \
   spotify-config.js \
   src/background/spotify.js \
   src/background/background.js

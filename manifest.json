@@ -13,6 +13,16 @@
     "https://accounts.spotify.com/*",
     "https://api.spotify.com/*"
   ],
+  "optional_host_permissions": [
+    "https://www.ultimate-guitar.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.ultimate-guitar.com/search.php*"],
+      "js": ["src/content/open-most-rated.js"],
+      "run_at": "document_start"
+    }
+  ],
   "background": {
     "scripts": [
       "spotify-config.js",
