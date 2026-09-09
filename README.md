@@ -1,6 +1,6 @@
 # Tabs Now
 
-A plain HTML, CSS, and JavaScript Firefox extension that follows the current Spotify song on Ultimate Guitar. Start jamming to open a search for the current song, then it updates the search when the song changes. Stop jamming to pause that behavior. It reuses an open Ultimate Guitar tab when possible and opens a new one otherwise.
+A plain HTML, CSS, and JavaScript Firefox extension that follows the current Spotify song on Ultimate Guitar. Start jamming to open a search for the current song, then it updates the search when the song changes. Stop jamming to pause that behavior. The "Top result" option searches DuckDuckGo with `site:ultimate-guitar.com` and opens its first Ultimate Guitar result. It reuses an open Ultimate Guitar tab when possible and opens a new one otherwise.
 
 The extension code lives in `src/`, grouped by surface: `popup`, `options`, and `background`. The UI file in `popup` is loaded as Firefox's sidebar panel. `spotify-config.js` stays at the root so it is easy to update locally and is loaded before the background scripts.
 

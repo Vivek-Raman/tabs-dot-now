@@ -9,23 +9,25 @@ const JAMMING_POLL_MS = 5_000
 
 let jamming = false
 let jamMode = "chords"
-let jamResult = "most-rated"
+let jamResult = "top-result"
 let lastJamDebug = ""
 let jammingPoll
 let lastJammedTrackUri
 
-function getSearchUrl(query, mode = jamMode, mostRatedTrack = null) {
+function getUltimateGuitarSearchUrl(query, mode = jamMode) {
   const url = new URL("https://www.ultimate-guitar.com/search.php")
   url.searchParams.set("search_type", "title")
   url.searchParams.set("value", query)
   url.searchParams.append("type[]", mode === "chords" ? "300" : "200")
 
-  if (mostRatedTrack) {
-    url.searchParams.set("tabs-now-open", "most-rated")
-    url.searchParams.set("tabs-now-title", mostRatedTrack.name)
-    url.searchParams.set("tabs-now-creators", mostRatedTrack.creators.join("\u001f"))
-  }
+  return url.toString()
+}
 
+function getTopResultSearchUrl(query, mode = jamMode) {
+  const type = mode === "chords" ? "chords" : "tabs"
+  const url = new URL("https://html.duckduckgo.com/html/")
+  url.searchParams.set("q", `site:ultimate-guitar.com ${query} ${type}`)
+  url.searchParams.set("tabs-now-open", "top-result")
   return url.toString()
 }
 
@@ -45,11 +47,11 @@ async function findUltimateGuitarTab() {
   return allTabs[0]
 }
 
-async function loadTab(query, mode = jamMode, mostRatedTrack = null) {
-  const url = getSearchUrl(query, mode, mostRatedTrack)
-  const destination = mostRatedTrack
-    ? `most rated ${mode} result`
-    : `${mode} search`
+async function loadTab(query, mode = jamMode, topResult = false) {
+  const url = topResult
+    ? getTopResultSearchUrl(query, mode)
+    : getUltimateGuitarSearchUrl(query, mode)
+  const destination = topResult ? `top ${mode} result` : `${mode} search`
   const { reuseOpenTab = true } = await browser.storage.local.get({
     reuseOpenTab: true,
   })
@@ -71,8 +73,8 @@ async function loadTab(query, mode = jamMode, mostRatedTrack = null) {
   return `Opened a new Ultimate Guitar ${destination}.`
 }
 
-async function loadMostRatedTab(track, mode = jamMode) {
-  console.info("[Tabs Now] Loading most-rated search", {
+async function loadTopResultTab(track, mode = jamMode) {
+  console.info("[Tabs Now] Loading top-result search", {
     track: track.name,
     creators: track.creators,
     mode,
@@ -82,7 +84,7 @@ async function loadMostRatedTab(track, mode = jamMode) {
 
 function loadTrack(track, result = jamResult) {
   if (result === "search") return loadTab(getTrackQuery(track))
-  return loadMostRatedTab(track)
+  return loadTopResultTab(track)
 }
 
 function scheduleJammingCheck() {
@@ -147,8 +149,8 @@ async function setJamMode(mode) {
 }
 
 async function setJamResult(result) {
-  if (result !== "search" && result !== "most-rated") {
-    throw new Error("Choose search results or most rated.")
+  if (result !== "search" && result !== "top-result") {
+    throw new Error("Choose search results or top result.")
   }
 
   jamResult = result
@@ -156,8 +158,8 @@ async function setJamResult(result) {
 }
 
 async function openCurrentTrack(result) {
-  if (result !== "search" && result !== "most-rated") {
-    throw new Error("Choose search results or most rated.")
+  if (result !== "search" && result !== "top-result") {
+    throw new Error("Choose search results or top result.")
   }
 
   const playback = await Spotify.getCurrentlyPlaying()
@@ -172,12 +174,15 @@ const restoreJamming = browser.storage.local
   .get({
     [JAMMING_STORAGE_KEY]: false,
     [JAM_MODE_STORAGE_KEY]: "chords",
-    [JAM_RESULT_STORAGE_KEY]: "most-rated",
+    [JAM_RESULT_STORAGE_KEY]: "top-result",
   })
   .then(async (stored) => {
     jamming = stored[JAMMING_STORAGE_KEY]
     jamMode = stored[JAM_MODE_STORAGE_KEY]
-    jamResult = stored[JAM_RESULT_STORAGE_KEY]
+    jamResult =
+      stored[JAM_RESULT_STORAGE_KEY] === "most-rated"
+        ? "top-result"
+        : stored[JAM_RESULT_STORAGE_KEY]
     if (jamming) await checkForJammingTrack()
   })
   .catch((error) => {
@@ -209,7 +214,7 @@ browser.runtime.onMessage.addListener(async (message) => {
       return { message: await openCurrentTrack(message.result) }
     case "jamming-debug":
       lastJamDebug = message.detail || ""
-      console.info("[Tabs Now] Most-rated debug:", lastJamDebug)
+      console.info("[Tabs Now] Top-result debug:", lastJamDebug)
       return undefined
     case "jamming-start":
       return { active: true, message: await setJamming(true) }

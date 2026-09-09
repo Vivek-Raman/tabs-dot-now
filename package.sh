@@ -24,7 +24,7 @@ zip -q "$archive" \
   src/options/options.html \
   src/options/options.css \
   src/options/options.js \
-  src/content/open-most-rated.js \
+  src/content/open-top-result.js \
   spotify-config.js \
   src/background/spotify.js \
   src/background/background.js

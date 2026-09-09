@@ -16,8 +16,9 @@ const manualOpenButtons = document.querySelectorAll("[data-jam-result]")
 
 let spotifyConnected = false
 let jamming = false
+let latestPlayback
 let jamMode = "chords"
-let jamResult = "most-rated"
+let jamResult = "top-result"
 let spotifyPoll
 let rapidPollingUntil = 0
 let lastQueueTrackUri
@@ -27,7 +28,10 @@ const FINAL_SECONDS_WINDOW_MS = 5_000
 const FINAL_SECONDS_POLL_MS = 1_000
 const POST_ROLLOVER_POLL_MS = 5_000
 const QUEUE_REFRESH_MS = 60_000
-const ULTIMATE_GUITAR_ORIGINS = ["https://www.ultimate-guitar.com/*"]
+const TOP_RESULT_ORIGINS = [
+  "https://www.ultimate-guitar.com/*",
+  "https://html.duckduckgo.com/*",
+]
 
 browser.runtime.onMessage.addListener((message) => {
   if (message?.type !== "jamming-debug") return undefined
@@ -81,7 +85,7 @@ function getSpotifyPollDelay(playback) {
 function setSpotifyPolling(playback) {
   clearTimeout(spotifyPoll)
 
-  if (!playback.connected) {
+  if (!jamming || !playback?.connected) {
     rapidPollingUntil = 0
     return
   }
@@ -92,23 +96,24 @@ function setSpotifyPolling(playback) {
 }
 
 function scheduleSpotifyRetry() {
-  if (!spotifyConnected) return
+  if (!jamming || !spotifyConnected) return
 
   clearTimeout(spotifyPoll)
   spotifyPoll = setTimeout(loadSpotifyData, NORMAL_POLL_MS)
 }
 
-async function requestUltimateGuitarPermission() {
+async function requestTopResultPermissions() {
   const granted = await browser.permissions.request({
-    origins: ULTIMATE_GUITAR_ORIGINS,
+    origins: TOP_RESULT_ORIGINS,
   })
 
   if (!granted) {
-    throw new Error("Allow Ultimate Guitar access to open tabs automatically.")
+    throw new Error("Allow DuckDuckGo and Ultimate Guitar access to open top results.")
   }
 }
 
 function renderSpotify(playback) {
+  latestPlayback = playback
   spotifyConnected = playback.connected
   spotifyAction.textContent = playback.connected
     ? "Disconnect"
@@ -302,7 +307,7 @@ jamResultInputs.forEach((input) => {
     if (!input.checked || input.value === jamResult) return
 
     try {
-      if (input.value === "most-rated") await requestUltimateGuitarPermission()
+      if (input.value === "top-result") await requestTopResultPermissions()
       const result = await browser.runtime.sendMessage({
         type: "jamming-set-result",
         result: input.value,
@@ -323,8 +328,8 @@ manualOpenButtons.forEach((button) => {
     jammingStatus.textContent = "Opening..."
 
     try {
-      if (button.dataset.jamResult === "most-rated") {
-        await requestUltimateGuitarPermission()
+      if (button.dataset.jamResult === "top-result") {
+        await requestTopResultPermissions()
       }
       const result = await browser.runtime.sendMessage({
         type: "jamming-open-current",
@@ -364,14 +369,15 @@ jammingAction.addEventListener("click", async () => {
   jammingStatus.textContent = jamming ? "Stopping..." : "Starting..."
 
   try {
-    if (!jamming && jamResult === "most-rated") {
-      await requestUltimateGuitarPermission()
+    if (!jamming && jamResult === "top-result") {
+      await requestTopResultPermissions()
     }
     const result = await browser.runtime.sendMessage({
       type: jamming ? "jamming-stop" : "jamming-start",
     })
     jamming = result.active
     jammingStatus.textContent = result.message
+    setSpotifyPolling(latestPlayback)
   } catch (error) {
     console.error(error)
     jammingStatus.textContent = error.message || "Firefox could not update jamming."

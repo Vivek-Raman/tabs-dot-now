@@ -14,12 +14,13 @@
     "https://api.spotify.com/*"
   ],
   "optional_host_permissions": [
-    "https://www.ultimate-guitar.com/*"
+    "https://www.ultimate-guitar.com/*",
+    "https://html.duckduckgo.com/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.ultimate-guitar.com/search.php*"],
-      "js": ["src/content/open-most-rated.js"],
+      "matches": ["https://html.duckduckgo.com/html/*"],
+      "js": ["src/content/open-top-result.js"],
       "run_at": "document_start"
     }
   ],
